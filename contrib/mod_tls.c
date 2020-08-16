@@ -16379,6 +16379,63 @@ static void tls_lookup_all(server_rec *s) {
 
 /* SSL setters */
 
+static int tls_ssl_set_cert_chain(SSL *ssl) {
+#if defined(SSL_CTRL_CHAIN_CERT)
+  BIO *bio;
+  X509 *cert;
+  unsigned int count = 0;
+  int flags;
+
+  if (tls_ca_chain == NULL) {
+    return 0;
+  }
+
+  PRIVS_ROOT
+  bio = BIO_new_file(tls_ca_chain, "r");
+  PRIVS_RELINQUISH
+
+  if (bio == NULL) {
+    tls_log("unable to read certificate chain '%s': %s", tls_ca_chain,
+      tls_get_errors());
+    return 0;
+  }
+
+  if (SSL_clear_chain_certs(ssl) != 1) {
+    tls_log("error clearing SSL chain certs: %s", tls_get_errors());
+    BIO_free(bio);
+    return -1;
+  }
+
+  cert = PEM_read_bio_X509(bio, NULL, NULL, NULL);
+  while (cert != NULL) {
+    pr_signals_handle();
+
+    if (SSL_add1_chain_cert(ssl, cert) != 1) {
+      tls_log("error adding cert to SSL chain certs: %s", tls_get_errors());
+      X509_free(cert);
+      break;
+    }
+
+    X509_free(cert);
+    count++;
+
+    cert = PEM_read_bio_X509(bio, NULL, NULL, NULL);
+  }
+
+  BIO_free(bio);
+
+  flags = SSL_BUILD_CHAIN_FLAG_NO_ROOT|SSL_BUILD_CHAIN_FLAG_CHECK;
+  if (SSL_build_cert_chain(ssl, flags) != 1) {
+    tls_log("error building SSL cert chain: %s", tls_get_errors());
+    return -1;
+  }
+
+  tls_log("added %u certs from '%s' to certificate chain", count, tls_ca_chain);
+#endif /* SSL_CTRL_CHAIN_CERT */
+
+  return 0;
+}
+
 static int tls_ssl_set_ciphers(SSL *ssl) {
   SSL_set_cipher_list(ssl, tls_cipher_suite);
 
@@ -16901,6 +16958,13 @@ static int tls_ssl_set_all(server_rec *s, SSL *ssl) {
    */
   if (tls_ssl_set_session_id_context(s, ssl) < 0 ||
       tls_ctx_set_session_id_context(s, ctx) < 0) {
+    return -1;
+  }
+
+  /* Inexplicable OpenSSL errors occur if the cert chain is updated after
+   * calling SSL_set_SSL_CTX, so we do it beforehand.
+   */
+  if (tls_ssl_set_cert_chain(ssl) < 0) {
     return -1;
   }
 
@@ -17548,10 +17612,11 @@ static int tls_ctx_set_rsa_cert(SSL_CTX *ctx, X509 **rsa_cert) {
 
 static int tls_ctx_set_cert_chain(SSL_CTX *ctx, X509 *dsa_cert, X509 *ec_cert,
     X509 *rsa_cert) {
+#if defined(SSL_CTRL_CHAIN_CERT)
   BIO *bio;
   X509 *cert;
   unsigned int count = 0;
-  int res;
+  int flags;
 
   if (tls_ca_chain == NULL) {
     return 0;
@@ -17559,12 +17624,18 @@ static int tls_ctx_set_cert_chain(SSL_CTX *ctx, X509 *dsa_cert, X509 *ec_cert,
 
   PRIVS_ROOT
   bio = BIO_new_file(tls_ca_chain, "r");
-  if (bio == NULL) {
-    PRIVS_RELINQUISH
+  PRIVS_RELINQUISH
 
+  if (bio == NULL) {
     tls_log("unable to read certificate chain '%s': %s", tls_ca_chain,
       tls_get_errors());
     return 0;
+  }
+
+  if (SSL_CTX_clear_chain_certs(ctx) != 1) {
+    tls_log("error clearing SSL_CTX chain certs: %s", tls_get_errors());
+    BIO_free(bio);
+    return -1;
   }
 
   cert = PEM_read_bio_X509(bio, NULL, NULL, NULL);
@@ -17598,8 +17669,7 @@ static int tls_ctx_set_cert_chain(SSL_CTX *ctx, X509 *dsa_cert, X509 *ec_cert,
       }
     }
 
-    res = SSL_CTX_add_extra_chain_cert(ctx, cert);
-    if (res != 1) {
+    if (SSL_CTX_add1_chain_cert(ctx, cert) != 1) {
       tls_log("error adding cert to certificate chain: %s", tls_get_errors());
       X509_free(cert);
       break;
@@ -17609,10 +17679,17 @@ static int tls_ctx_set_cert_chain(SSL_CTX *ctx, X509 *dsa_cert, X509 *ec_cert,
     cert = PEM_read_bio_X509(bio, NULL, NULL, NULL);
   }
 
-  PRIVS_RELINQUISH
   BIO_free(bio);
 
+  flags = SSL_BUILD_CHAIN_FLAG_NO_ROOT|SSL_BUILD_CHAIN_FLAG_CHECK;
+  if (SSL_CTX_build_cert_chain(ctx, flags) != 1) {
+    tls_log("error building SSL_CTX cert chain: %s", tls_get_errors());
+    return -1;
+  }
+
   tls_log("added %u certs from '%s' to certificate chain", count, tls_ca_chain);
+#endif /* SSL_CTRL_CHAIN_CERT */
+
   return 0;
 }
 
