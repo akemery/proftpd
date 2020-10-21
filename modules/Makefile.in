@@ -10,6 +10,10 @@ SHARED_CFLAGS=-DPR_SHARED_MODULE
 SHARED_LDFLAGS=-avoid-version -export-dynamic -module
 VPATH=@srcdir@
 
+PICO_LIBS=@PICO_LIBS@
+PICO_LDFLAGS=@PICO_LDFLAGS@
+PICO_CFLAGS=@PICO_CFLAGS@
+
 include ../Make.rules
 
 .SUFFIXES: .la
@@ -31,8 +35,8 @@ mod_dso.o: mod_dso.c
 	$(CC) $(CPPFLAGS) $(CFLAGS) -c $<
 
 .c.la:
-	$(LIBTOOL) --mode=compile --tag=CC $(CC) $(CPPFLAGS) $(CFLAGS) $(SHARED_CFLAGS) -c $(top_srcdir)/modules/$*.c
-	$(LIBTOOL) --mode=link --tag=CC $(CC) -o $@ -rpath $(LIBEXECDIR) $(LDFLAGS) $(SHARED_LDFLAGS) $(SHARED_MODULE_LIBS) $*.lo `cat $(top_srcdir)/modules/$*.c | grep '$$Libraries:' | sed -e 's/^.*\$$Libraries: \(.*\)\\$$/\1/'`
+	$(LIBTOOL) --mode=compile --tag=CC $(CC) $(CPPFLAGS) $(PICO_CFLAGS) $(CFLAGS)  $(PICO_LDFLAGS) $(SHARED_CFLAGS) -c $(top_srcdir)/modules/$*.c
+	$(LIBTOOL) --mode=link --tag=CC $(CC) -o $@ -rpath $(LIBEXECDIR) $(LDFLAGS) $(PICO_LIBS) $(SHARED_LDFLAGS) $(SHARED_MODULE_LIBS) $*.lo `cat $(top_srcdir)/modules/$*.c | grep '$$Libraries:' | sed -e 's/^.*\$$Libraries: \(.*\)\\$$/\1/'`
 
 module_glue.c: module_glue.c.tmpl $(STATIC_MODULE_OBJS)
 	srcdir=$(srcdir) $(srcdir)/glue.sh $(GLUE_MODULE_OBJS)

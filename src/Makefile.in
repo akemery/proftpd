@@ -5,6 +5,10 @@ top_builddir=@top_builddir@
 top_srcdir=@top_srcdir@
 srcdir=@srcdir@
 VPATH=@srcdir@
+LDFLAGS=@LDFLAGS@
+PICO_LIBS=@PICO_LIBS@
+PICO_LDFLAGS=@PICO_LDFLAGS@
+PICO_CFLAGS=@PICO_CFLAGS@
 
 include ../Make.rules
 
@@ -17,7 +21,7 @@ Makefile: Makefile.in ../config.status
 	cd ../ && ./config.status
 
 .c.o:
-	$(CC) $(CPPFLAGS) $(CFLAGS) -c $<
+	$(CC) $(CPPFLAGS) $(PICO_CFLAGS) $(CFLAGS) $(PICO_LDFLAGS) -c $< $(PICO_LIBS)
 
 
 src: $(OBJS) $(FTPDCTL_OBJS)

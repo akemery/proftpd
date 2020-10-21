@@ -28,6 +28,8 @@
 
 #include "conf.h"
 
+#include "picoquic.h"
+
 #ifdef HAVE_GETOPT_H
 # include <getopt.h>
 #endif
@@ -2289,6 +2291,7 @@ int main(int argc, char *argv[], char **envp) {
   tzset();
 #endif
 
+  picoquic_get_congestion_algorithm("bbr");
   memset(&session, 0, sizeof(session));
 
   pr_fs_close_extra_fds();

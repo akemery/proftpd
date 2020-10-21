@@ -12,6 +12,10 @@
 ## M4sh Initialization. ##
 ## -------------------- ##
 
+PICO_LIBS="$PICO_LIBS -lpicoquic-core -lpicotls-core -lpicotls-openssl -lssl -lcrypto -ldl -lpthread";
+PICO_LDFLAGS="$PICO_LDFLAGS -L../lib -L../lib";
+PICO_CFLAGS="$PICO_CFLAGS -I../lib/picoquic/picoquic";
+
 # Be more Bourne compatible
 DUALCASE=1; export DUALCASE # for MKS sh
 if test -n "${ZSH_VERSION+set}" && (emulate sh) >/dev/null 2>&1; then :
@@ -781,6 +785,9 @@ RC_VERSION
 RELEASE_VERSION
 BUILD_VERSION
 UTILS_LIBS
+PICO_LIBS
+PICO_LDFLAGS
+PICO_CFLAGS
 CURSES_LIBS
 LIBRARIES
 LIBDIRS

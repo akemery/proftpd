@@ -27,11 +27,14 @@ Makefile: Makefile.in ../config.status
 libltdl: dummy
 	cd libltdl/ && $(MAKE)
 
+libpicoquic: dummy
+	cd picoquic/ && $(CMAKE) . && $(MAKE)
+
 libsupp.a: $(LIB_OBJS)
 	$(AR) rc libsupp.a $(LIB_OBJS)
 	$(RANLIB) libsupp.a
 
-lib: libsupp.a $(LIB_DEPS)
+lib: libpicoquic libsupp.a $(LIB_DEPS)
 
 install:
 
