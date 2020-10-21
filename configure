@@ -12,7 +12,7 @@
 ## M4sh Initialization. ##
 ## -------------------- ##
 
-PICO_LIBS="$PICO_LIBS -lpicoquic-core -lpicotls-core -lpicotls-openssl -lssl -lcrypto -ldl -lpthread";
+PICO_LIBS="$PICO_LIBS -lpicoquic-core -lpicotls-core -lpicotls-openssl -lpicotls-fusion  -lssl -lcrypto -ldl -lpthread";
 PICO_LDFLAGS="$PICO_LDFLAGS -L../lib -L../lib";
 PICO_CFLAGS="$PICO_CFLAGS -I../lib/picoquic/picoquic";
 
